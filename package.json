@@ -1,6 +1,6 @@
 {
   "name": "astro-textile",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Textile integration for Astro",
   "homepage": "https://github.com/r8/astro-textile#readme",
   "bugs": {
@@ -32,8 +32,14 @@
     "fmt:check": "oxfmt --check",
     "prepublishOnly": "yarn build"
   },
+  "dependencies": {
+    "simplematter": "^1.0.1",
+    "textile-js": "^2.1.1"
+  },
   "devDependencies": {
     "@types/node": "^26.1.1",
+    "@types/textile-js": "^2.1.0",
+    "astro": "^7.0.0",
     "oxfmt": "^0.70.0",
     "oxlint": "^1.85.0",
     "publint": "^0.3.24",

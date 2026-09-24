@@ -1,0 +1,7 @@
+---
+title: First post
+tags: [a, b]
+---
+h1. Heading
+
+Some *bold* text.

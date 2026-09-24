@@ -1,3 +1,3 @@
-export function fn() {
-  return "Hello, tsdown!";
-}
+import { textileLoader } from "./textile-loader";
+
+export { textileLoader };
