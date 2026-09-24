@@ -16,6 +16,7 @@
     "dist"
   ],
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
@@ -25,14 +26,25 @@
     "dev": "tsdown --watch",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "release": "bumpp",
+    "lint": "oxlint",
+    "publint": "publint",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
     "prepublishOnly": "yarn build"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
-    "bumpp": "^11.1.0",
+    "oxfmt": "^0.70.0",
+    "oxlint": "^1.85.0",
+    "publint": "^0.3.24",
     "tsdown": "^0.22.5",
     "typescript": "^6",
     "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "astro": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }
