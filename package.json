@@ -1,6 +1,6 @@
 {
   "name": "astro-textile",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Textile integration for Astro",
   "homepage": "https://github.com/r8/astro-textile#readme",
   "bugs": {
