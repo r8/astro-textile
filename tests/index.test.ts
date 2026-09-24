@@ -1,10 +1,13 @@
 import type { LoaderContext } from "astro/loaders";
 import { expect, test, vi } from "vitest";
-import { textileLoader } from "../src";
+import { textileLoader, type TextileLoaderOptions } from "../src";
 
-type Entry = { id: string; [key: string]: unknown };
+type Entry = { id: string; rendered?: { html: string }; [key: string]: unknown };
 
-async function runLoader(initial: Entry[] = []) {
+async function runLoader(
+  initial: Entry[] = [],
+  options: TextileLoaderOptions = { base: "posts", syntaxHighlight: false },
+) {
   const entries = new Map<string, Entry>(initial.map((entry) => [entry.id, entry]));
   const store = {
     entries,
@@ -13,7 +16,7 @@ async function runLoader(initial: Entry[] = []) {
   };
   const parseData = vi.fn(async ({ data }: { data: Record<string, unknown> }) => data);
 
-  await textileLoader({ base: "posts" }).load({
+  await textileLoader(options).load({
     config: { root: new URL("./fixtures/", import.meta.url) },
     store,
     parseData,
@@ -53,4 +56,55 @@ test("clears the store before loading", async () => {
 
   expect(store.clear).toHaveBeenCalledOnce();
   expect(store.entries.has("stale")).toBe(false);
+});
+
+async function renderCode(options: Omit<TextileLoaderOptions, "base"> = {}) {
+  const { store } = await runLoader([], { base: "code", ...options });
+  const html = store.entries.get("code")?.rendered?.html;
+
+  expect(html).toBeTypeOf("string");
+  return html as string;
+}
+
+test("highlights code blocks with Shiki by default", async () => {
+  const html = await renderCode();
+
+  expect(html).toContain('class="astro-code github-dark"');
+  expect(html).toContain('data-language="js"');
+  expect(html).toContain('data-language="ts"');
+  expect(html).toContain('data-language="plaintext"');
+  expect(html).not.toContain("&amp;lt;");
+});
+
+test("applies the Shiki theme from shikiConfig", async () => {
+  const html = await renderCode({ shikiConfig: { theme: "dracula" } });
+
+  expect(html).toContain('class="astro-code dracula"');
+});
+
+test("highlights code blocks with Prism", async () => {
+  const html = await renderCode({ syntaxHighlight: "prism" });
+
+  expect(html).toContain('<pre class="language-js" data-language="js">');
+  expect(html).toContain('<span class="token keyword">const</span>');
+});
+
+test("leaves code blocks untouched when highlighting is disabled", async () => {
+  const html = await renderCode({ syntaxHighlight: false });
+
+  expect(html).toBe(
+    [
+      '<pre class="language-js"><code class="language-js">const tag = "&lt;b&gt;" &amp;&amp; 1;</code></pre>',
+      '<pre lang="ts"><code lang="ts">let x: number = 1;</code></pre>',
+      "<pre><code>plain &amp; text</code></pre>",
+    ].join("\n"),
+  );
+});
+
+test("skips languages listed in excludeLangs", async () => {
+  const html = await renderCode({ syntaxHighlight: { type: "shiki", excludeLangs: ["js"] } });
+
+  expect(html).toContain('<code class="language-js">');
+  expect(html).not.toContain('data-language="js"');
+  expect(html).toContain('data-language="ts"');
 });

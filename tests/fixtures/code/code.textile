@@ -1,0 +1,8 @@
+---
+title: Code
+---
+bc(language-js). const tag = "<b>" && 1;
+
+bc[ts]. let x: number = 1;
+
+bc. plain & text

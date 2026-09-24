@@ -25,7 +25,7 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "test": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tests",
     "lint": "oxlint",
     "publint": "publint",
     "fmt": "oxfmt",
@@ -33,13 +33,17 @@
     "prepublishOnly": "yarn build"
   },
   "dependencies": {
+    "@astrojs/markdown-satteri": "^0.4.0",
+    "hast-util-to-html": "^9.0.5",
+    "satteri": "^0.10.3",
     "simplematter": "^1.0.1",
     "textile-js": "^2.1.1"
   },
   "devDependencies": {
+    "@types/hast": "^3.0.5",
     "@types/node": "^26.1.1",
     "@types/textile-js": "^2.1.0",
-    "astro": "^7.0.0",
+    "astro": "^7.3.0",
     "oxfmt": "^0.70.0",
     "oxlint": "^1.85.0",
     "publint": "^0.3.24",
@@ -48,7 +52,7 @@
     "vitest": "^4.1.10"
   },
   "peerDependencies": {
-    "astro": "^7.0.0"
+    "astro": "^7.3.0"
   },
   "engines": {
     "node": ">=22.12.0"

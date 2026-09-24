@@ -141,7 +141,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@astrojs/markdown-satteri@npm:0.4.2":
+"@astrojs/markdown-satteri@npm:0.4.2, @astrojs/markdown-satteri@npm:^0.4.0":
   version: 0.4.2
   resolution: "@astrojs/markdown-satteri@npm:0.4.2"
   dependencies:
@@ -1712,23 +1712,27 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "astro-textile@workspace:."
   dependencies:
+    "@astrojs/markdown-satteri": "npm:^0.4.0"
+    "@types/hast": "npm:^3.0.5"
     "@types/node": "npm:^26.1.1"
     "@types/textile-js": "npm:^2.1.0"
-    astro: "npm:^7.0.0"
+    astro: "npm:^7.3.0"
+    hast-util-to-html: "npm:^9.0.5"
     oxfmt: "npm:^0.70.0"
     oxlint: "npm:^1.85.0"
     publint: "npm:^0.3.24"
+    satteri: "npm:^0.10.3"
     simplematter: "npm:^1.0.1"
     textile-js: "npm:^2.1.1"
     tsdown: "npm:^0.22.5"
     typescript: "npm:^6"
     vitest: "npm:^4.1.10"
   peerDependencies:
-    astro: ^7.0.0
+    astro: ^7.3.0
   languageName: unknown
   linkType: soft
 
-"astro@npm:^7.0.0":
+"astro@npm:^7.3.0":
   version: 7.3.4
   resolution: "astro@npm:7.3.4"
   dependencies:

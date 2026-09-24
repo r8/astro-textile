@@ -1,3 +1,3 @@
-import { textileLoader } from "./textile-loader";
+import { textileLoader, type TextileLoaderOptions } from "./textile-loader";
 
-export { textileLoader };
+export { textileLoader, type TextileLoaderOptions };

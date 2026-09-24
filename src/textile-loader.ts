@@ -4,8 +4,13 @@ import { readdir, readFile } from "node:fs/promises";
 import type { Loader } from "astro/loaders";
 import { simplematter } from "simplematter";
 import textile from "textile-js";
+import { createCodeHighlighter, type HighlightOptions } from "./highlight";
 
-export function textileLoader(options: { base: string }): Loader {
+export interface TextileLoaderOptions extends HighlightOptions {
+  base: string;
+}
+
+export function textileLoader(options: TextileLoaderOptions): Loader {
   return {
     name: "textile-loader",
     load: async ({ config, store, parseData }) => {
@@ -14,6 +19,8 @@ export function textileLoader(options: { base: string }): Loader {
       let files = dirItems
         .filter((item) => item.isFile())
         .filter((item) => path.extname(item.name) === ".textile");
+
+      const highlight = await createCodeHighlighter(options);
 
       store.clear();
 
@@ -24,7 +31,8 @@ export function textileLoader(options: { base: string }): Loader {
 
         const content = await readFile(filePath, "utf-8");
         const [frontmatter, doc] = simplematter(content) as [Record<string, unknown>, string];
-        const body = textile(doc);
+
+        const body = await highlight(textile(doc));
 
         const data = await parseData({
           id,
