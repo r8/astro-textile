@@ -1723,6 +1723,7 @@ __metadata:
     publint: "npm:^0.3.24"
     satteri: "npm:^0.10.3"
     textile-js: "npm:^2.1.1"
+    tinyglobby: "npm:^0.2.15"
     tsdown: "npm:^0.22.5"
     typescript: "npm:^6"
     vitest: "npm:^4.1.10"

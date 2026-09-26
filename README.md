@@ -23,7 +23,7 @@ import { z } from "astro/zod";
 import { textileLoader } from "astro-textile";
 
 const posts = defineCollection({
-    loader: textileLoader({ base: "src/content/posts" }),
+    loader: textileLoader({ pattern: "**/*.textile", base: "./src/content/posts" }),
     schema: z.object({
         title: z.string(),
         tags: z.array(z.string()).optional(),
@@ -63,11 +63,12 @@ const { Content } = await render(post);
 
 ## Options
 
-| Option            | Description                                                                                                     |
-| ----------------- | --------------------------------------------------------------------------------------------------------------- |
-| `base`            | Directory with `.textile` files, relative to the project root. Required.                                        |
-| `syntaxHighlight` | Same as Astro's `markdown.syntaxHighlight`. Defaults to `"shiki"`; set to `false` to disable code highlighting. |
-| `shikiConfig`     | Same as Astro's `markdown.shikiConfig`, e.g. `{ theme: "dracula" }`.                                            |
+| Option            | Description                                                                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pattern`         | Glob pattern (or array of patterns) matching the files to load, relative to `base`, e.g. `"**/*.textile"`. Cannot start with `../` or `/`. Required. |
+| `base`            | Directory to resolve `pattern` from, relative to the project root, or an absolute file URL. Defaults to the project root.                            |
+| `syntaxHighlight` | Same as Astro's `markdown.syntaxHighlight`. Defaults to `"shiki"`; set to `false` to disable code highlighting.                                      |
+| `shikiConfig`     | Same as Astro's `markdown.shikiConfig`, e.g. `{ theme: "dracula" }`.                                                                                 |
 
 ## License
 
