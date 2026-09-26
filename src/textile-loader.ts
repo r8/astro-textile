@@ -2,7 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readdir, readFile } from "node:fs/promises";
 import type { Loader } from "astro/loaders";
-import { simplematter } from "simplematter";
+import { parseFrontmatter } from "astro/markdown";
 import textile from "textile-js";
 import { createCodeHighlighter, type HighlightOptions } from "./highlight";
 
@@ -30,9 +30,9 @@ export function textileLoader(options: TextileLoaderOptions): Loader {
         const relPath = path.relative(fileURLToPath(config.root), filePath);
 
         const content = await readFile(filePath, "utf-8");
-        const [frontmatter, doc] = simplematter(content) as [Record<string, unknown>, string];
+        const { frontmatter, content: doc } = parseFrontmatter(content);
 
-        const body = await highlight(textile(doc));
+        const body = await highlight(textile(doc.trimStart()));
 
         const data = await parseData({
           id,

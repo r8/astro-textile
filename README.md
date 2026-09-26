@@ -33,7 +33,7 @@ const posts = defineCollection({
 export const collections = { posts };
 ```
 
-Write posts as `.textile` files with YAML frontmatter:
+Write posts as `.textile` files with YAML (`---`) or TOML (`+++`) frontmatter:
 
 ```textile
 ---

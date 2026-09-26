@@ -1,0 +1,5 @@
+---
+title: Dated post
+date: 2024-01-02
+---
+h1. Heading

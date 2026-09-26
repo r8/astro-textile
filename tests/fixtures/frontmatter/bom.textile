@@ -1,0 +1,4 @@
+﻿---
+title: BOM post
+---
+h1. Heading
