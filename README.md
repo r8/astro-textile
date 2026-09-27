@@ -90,7 +90,7 @@ By default, IDs work like Astro's `glob()` loader. Each ID is the file path rela
 
 A `slug` field in the frontmatter overrides the generated ID.
 
-To build IDs another way, pass `generateId`. It receives `entry` (the file path relative to `base`), `base` (the base directory as a file URL) and `data` (the parsed frontmatter, not yet validated):
+To build IDs another way, pass `generateId`. It receives a `GenerateIdOptions` object with `entry` (the file path relative to `base`), `base` (the base directory as a file URL) and `data` (the parsed frontmatter, not yet validated):
 
 ```ts
 textileLoader({
