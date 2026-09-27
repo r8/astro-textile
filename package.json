@@ -2,6 +2,12 @@
   "name": "astro-textile",
   "version": "0.0.3",
   "description": "Textile integration for Astro",
+  "keywords": [
+    "astro",
+    "astro-loader",
+    "textile",
+    "withastro"
+  ],
   "homepage": "https://github.com/r8/astro-textile#readme",
   "bugs": {
     "url": "https://github.com/r8/astro-textile/issues"
