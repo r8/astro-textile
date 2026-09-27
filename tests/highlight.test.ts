@@ -79,3 +79,25 @@ test("trims leading newlines before highlighting with Shiki", async () => {
 
   expect(html).toContain('<code><span class="line"><span style="color:#F97583">const</span>');
 });
+
+// The HTML parser currently turns `\r\n` into `\n`, so this passes without special handling.
+// It guards against a parser that keeps `\r\n`, which the highlighter's newline regexes don't match.
+test("trims leading newlines from code blocks in files with CRLF line endings", async () => {
+  const html = await renderCode({ syntaxHighlight: "prism", trimLeadingNewlines: true }, "crlf");
+
+  expect(html).toContain('<code class="language-js"><span class="token keyword">const</span>');
+  expect(html).not.toContain("\r");
+});
+
+test("keeps the id and custom classes of code blocks with Shiki", async () => {
+  const html = await renderCode({}, "attributes");
+
+  expect(html).toContain('<pre class="astro-code github-dark custom"');
+  expect(html).toContain('id="example"');
+});
+
+test("keeps the id and custom classes of code blocks with Prism", async () => {
+  const html = await renderCode({ syntaxHighlight: "prism" }, "attributes");
+
+  expect(html).toContain('<pre class="language-js custom" data-language="js" id="example">');
+});

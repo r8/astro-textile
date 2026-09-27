@@ -53,6 +53,41 @@ function textContent(node: Nodes): string {
   return "";
 }
 
+function getClassNames(element: Element): Array<string> {
+  const { className, class: classString } = element.properties;
+
+  if (Array.isArray(className)) {
+    return className.filter((name): name is string => typeof name === "string");
+  }
+
+  // Shiki sets `class` as a string instead of a `className` array.
+  if (typeof classString === "string") {
+    return classString.split(/\s+/).filter(Boolean);
+  }
+
+  return [];
+}
+
+// Keep the `id` and custom classes Textile put on the block, e.g. with `bc(custom#example).`
+function copyBlockAttributes(from: Element, to: Element): void {
+  const { id } = from.properties;
+  if (id !== undefined) {
+    to.properties.id = id;
+  }
+
+  const customClassNames = getClassNames(from).filter((name) => !name.startsWith("language-"));
+  if (customClassNames.length === 0) {
+    return;
+  }
+
+  const classNames = [...new Set([...getClassNames(to), ...customClassNames])];
+  if (typeof to.properties.class === "string") {
+    to.properties.class = classNames.join(" ");
+  } else {
+    to.properties.className = classNames;
+  }
+}
+
 export async function createCodeHighlighter({
   syntaxHighlight = "shiki",
   shikiConfig,
@@ -96,6 +131,9 @@ export async function createCodeHighlighter({
 
       const highlighted = await highlight(source, lang);
       if (highlighted) {
+        if (highlighted.type === "element") {
+          copyBlockAttributes(child, highlighted);
+        }
         parent.children[index] = highlighted as ElementContent;
       }
     }

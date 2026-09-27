@@ -1717,6 +1717,7 @@ __metadata:
     "@types/node": "npm:^26.1.1"
     "@types/textile-js": "npm:^2.1.0"
     astro: "npm:^7.3.0"
+    github-slugger: "npm:^2.0.0"
     hast-util-to-html: "npm:^9.0.5"
     oxfmt: "npm:^0.70.0"
     oxlint: "npm:^1.85.0"

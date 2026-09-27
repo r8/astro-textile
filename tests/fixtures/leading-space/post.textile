@@ -1,0 +1,4 @@
+---
+title: Leading space
+---
+ Not a paragraph.

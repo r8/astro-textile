@@ -7,13 +7,18 @@ import type { Loader } from "astro/loaders";
 import { parseFrontmatter } from "astro/markdown";
 import textile from "textile-js";
 import { createCodeHighlighter, type HighlightOptions } from "./highlight";
-import { checkPrefix } from "./utils";
+import { type GenerateIdOptions, checkPrefix, generateIdDefault } from "./utils";
 
 export interface TextileLoaderOptions extends HighlightOptions {
   /** The glob pattern to match files, relative to the base directory */
   pattern: string | Array<string>;
   /** The base directory to resolve the glob pattern from. Relative to the root directory, or an absolute file URL. Defaults to `.` */
   base?: string | URL;
+  /**
+   * Function that generates an ID for an entry. Default implementation generates a slug from the entry path.
+   * @returns The ID of the entry. Must be unique per collection.
+   **/
+  generateId?: (options: GenerateIdOptions) => string;
 }
 
 export function textileLoader(textileOptions: TextileLoaderOptions): Loader {
@@ -28,10 +33,18 @@ export function textileLoader(textileOptions: TextileLoaderOptions): Loader {
     );
   }
 
+  const generateIdFunc =
+    textileOptions.generateId ?? ((opts: GenerateIdOptions) => generateIdDefault(opts));
+  const generateId = (opts: GenerateIdOptions) => String(generateIdFunc(opts));
+
   return {
     name: "textile-loader",
-    load: async ({ config, store, logger, parseData }) => {
+    load: async ({ config, collection, store, logger, parseData }) => {
       const baseDir = textileOptions.base ? new URL(textileOptions.base, config.root) : config.root;
+
+      if (!baseDir.pathname.endsWith("/")) {
+        baseDir.pathname = `${baseDir.pathname}/`;
+      }
 
       const relativeBasePath = path.relative(fileURLToPath(config.root), fileURLToPath(baseDir));
 
@@ -56,22 +69,42 @@ export function textileLoader(textileOptions: TextileLoaderOptions): Loader {
 
       store.clear();
 
+      const filePathById = new Map<string, string>();
+
       for (const file of files) {
-        const id = path.basename(file, path.extname(file));
         const absolutePath = path.join(fileURLToPath(baseDir), file);
-        const relativePath = path.relative(fileURLToPath(config.root), absolutePath);
+        const relativePath = path
+          .relative(fileURLToPath(config.root), absolutePath)
+          .split(path.sep)
+          .join("/");
 
         const content = await readFile(absolutePath, "utf-8");
         const { frontmatter, content: doc } = parseFrontmatter(content);
 
-        const body = await highlight(textile(doc.trimStart()));
+        const id = generateId({ entry: file, base: baseDir, data: frontmatter });
+
+        // Follow Astro's glob loader: the last entry wins unless `prerenderConflictBehavior` is "error".
+        const existingFilePath = filePathById.get(id);
+        if (existingFilePath && config.prerenderConflictBehavior !== "ignore") {
+          const message = `Collection "${collection}" has multiple entries with the ID "${id}": ${existingFilePath} and ${relativePath}. IDs must be unique.`;
+
+          if (config.prerenderConflictBehavior === "error") {
+            throw new Error(message);
+          }
+
+          logger.warn(message);
+        }
+        filePathById.set(id, relativePath);
+
+        const body = await highlight(textile(doc.replace(/^\uFEFF?(?:\r?\n)*/, "")));
 
         const data = await parseData({
           id,
           data: {
             ...frontmatter,
           },
-          filePath: relativePath,
+          // Astro resolves `image()` paths from this file's directory, so it must be absolute.
+          filePath: absolutePath,
         });
 
         store.set({
@@ -80,7 +113,7 @@ export function textileLoader(textileOptions: TextileLoaderOptions): Loader {
           filePath: relativePath,
           rendered: {
             html: body,
-            metadata: frontmatter,
+            metadata: { frontmatter },
           },
         });
       }

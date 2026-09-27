@@ -67,9 +67,32 @@ const { Content } = await render(post);
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pattern`             | Glob pattern (or array of patterns) matching the files to load, relative to `base`, e.g. `"**/*.textile"`. Cannot start with `../` or `/`. Required.     |
 | `base`                | Directory to resolve `pattern` from, relative to the project root, or an absolute file URL. Defaults to the project root.                                |
+| `generateId`          | Function that returns the ID for an entry. Must be unique per collection. See [Entry IDs](#entry-ids).                                                   |
 | `syntaxHighlight`     | Same as Astro's `markdown.syntaxHighlight`. Defaults to `"shiki"`; set to `false` to disable code highlighting.                                          |
 | `shikiConfig`         | Same as Astro's `markdown.shikiConfig`, e.g. `{ theme: "dracula" }`.                                                                                     |
 | `trimLeadingNewlines` | Remove blank lines at the start of code blocks before highlighting, e.g. after `bc..`. Has no effect when highlighting is disabled. Defaults to `false`. |
+
+## Entry IDs
+
+By default, IDs work like Astro's `glob()` loader. Each ID is the file path relative to `base`, without the extension. Every path segment is turned into a slug, and a trailing `index` is dropped:
+
+| File (relative to `base`)  | ID                 |
+| -------------------------- | ------------------ |
+| `first-post.textile`       | `first-post`       |
+| `2024/Hello World.textile` | `2024/hello-world` |
+| `guides/index.textile`     | `guides`           |
+
+A `slug` field in the frontmatter overrides the generated ID.
+
+To build IDs another way, pass `generateId`. It receives `entry` (the file path relative to `base`), `base` (the base directory as a file URL) and `data` (the parsed frontmatter, not yet validated):
+
+```ts
+textileLoader({
+    pattern: "**/*.textile",
+    base: "./src/content/posts",
+    generateId: ({ entry }) => entry.replace(/\.textile$/, ""),
+});
+```
 
 ## License
 

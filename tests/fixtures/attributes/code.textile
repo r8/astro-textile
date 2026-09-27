@@ -1,0 +1,1 @@
+bc(language-js custom#example). const a = 1;

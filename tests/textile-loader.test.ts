@@ -1,4 +1,5 @@
-import { expect, test } from "vitest";
+import { fileURLToPath } from "node:url";
+import { expect, test, vi } from "vitest";
 import { runLoader, type Entry } from "./helpers";
 
 test("loads only .textile files", async () => {
@@ -17,13 +18,13 @@ test("parses frontmatter and renders textile to HTML", async () => {
     filePath: "posts/first.textile",
     rendered: {
       html: "<h1>Heading</h1>\n<p>Some <strong>bold</strong> text.</p>",
-      metadata: frontmatter,
+      metadata: { frontmatter },
     },
   });
   expect(parseData).toHaveBeenCalledWith({
     id: "first",
     data: frontmatter,
-    filePath: "posts/first.textile",
+    filePath: fileURLToPath(new URL("./fixtures/posts/first.textile", import.meta.url)),
   });
 });
 
@@ -52,9 +53,80 @@ test("parses frontmatter after a byte order mark", async () => {
   expect(entry.rendered?.html).toBe("<h1>Heading</h1>");
 });
 
+test("keeps a leading space on the first line after the frontmatter", async () => {
+  const { store } = await runLoader([], { base: "leading-space", syntaxHighlight: false });
+
+  // In Textile, a line starting with a space isn't wrapped in a paragraph.
+  expect(store.entries.get("post")?.rendered?.html).toBe("Not a paragraph.");
+});
+
 test("clears the store before loading", async () => {
   const { store } = await runLoader([{ id: "stale" }]);
 
   expect(store.clear).toHaveBeenCalledOnce();
   expect(store.entries.has("stale")).toBe(false);
+});
+
+test("generates IDs from the path relative to the base directory", async () => {
+  const { store, logger } = await runLoader([], { base: "ids", syntaxHighlight: false });
+
+  expect([...store.entries.keys()].sort()).toEqual(["a/intro", "b/intro", "custom-slug", "guides"]);
+  expect(logger.warn).not.toHaveBeenCalled();
+});
+
+test("generates the same IDs whether or not the base has a trailing slash", async () => {
+  const { store } = await runLoader([], { base: "posts/", syntaxHighlight: false });
+
+  expect([...store.entries.keys()].sort()).toEqual(["first", "second"]);
+});
+
+test("generates IDs relative to the root when no base is set", async () => {
+  const { store } = await runLoader([], { pattern: "posts/*.textile", syntaxHighlight: false });
+
+  expect([...store.entries.keys()].sort()).toEqual(["posts/first", "posts/second"]);
+});
+
+test("uses a custom generateId function", async () => {
+  const generateId = vi.fn(({ entry }: { entry: string }) => `custom/${entry}`);
+  const { store } = await runLoader([], { base: "posts", syntaxHighlight: false, generateId });
+
+  expect(generateId).toHaveBeenCalledWith({
+    entry: "first.textile",
+    base: new URL("./fixtures/posts/", import.meta.url),
+    data: { title: "First post", tags: ["a", "b"] },
+  });
+  expect([...store.entries.keys()].sort()).toEqual([
+    "custom/first.textile",
+    "custom/second.textile",
+  ]);
+});
+
+test("warns when entries share an ID", async () => {
+  const { store, logger } = await runLoader([], { base: "duplicates", syntaxHighlight: false });
+
+  expect([...store.entries.keys()]).toEqual(["guides"]);
+  expect(logger.warn).toHaveBeenCalledOnce();
+  for (const text of ['"guides"', "duplicates/guides.textile", "duplicates/guides/index.textile"]) {
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining(text));
+  }
+});
+
+test("throws when entries share an ID and prerenderConflictBehavior is error", async () => {
+  await expect(
+    runLoader(
+      [],
+      { base: "duplicates", syntaxHighlight: false },
+      { prerenderConflictBehavior: "error" },
+    ),
+  ).rejects.toThrow('multiple entries with the ID "guides"');
+});
+
+test("ignores entries that share an ID when prerenderConflictBehavior is ignore", async () => {
+  const { logger } = await runLoader(
+    [],
+    { base: "duplicates", syntaxHighlight: false },
+    { prerenderConflictBehavior: "ignore" },
+  );
+
+  expect(logger.warn).not.toHaveBeenCalled();
 });
