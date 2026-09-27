@@ -63,12 +63,13 @@ const { Content } = await render(post);
 
 ## Options
 
-| Option            | Description                                                                                                                                          |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pattern`         | Glob pattern (or array of patterns) matching the files to load, relative to `base`, e.g. `"**/*.textile"`. Cannot start with `../` or `/`. Required. |
-| `base`            | Directory to resolve `pattern` from, relative to the project root, or an absolute file URL. Defaults to the project root.                            |
-| `syntaxHighlight` | Same as Astro's `markdown.syntaxHighlight`. Defaults to `"shiki"`; set to `false` to disable code highlighting.                                      |
-| `shikiConfig`     | Same as Astro's `markdown.shikiConfig`, e.g. `{ theme: "dracula" }`.                                                                                 |
+| Option                | Description                                                                                                                                              |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pattern`             | Glob pattern (or array of patterns) matching the files to load, relative to `base`, e.g. `"**/*.textile"`. Cannot start with `../` or `/`. Required.     |
+| `base`                | Directory to resolve `pattern` from, relative to the project root, or an absolute file URL. Defaults to the project root.                                |
+| `syntaxHighlight`     | Same as Astro's `markdown.syntaxHighlight`. Defaults to `"shiki"`; set to `false` to disable code highlighting.                                          |
+| `shikiConfig`         | Same as Astro's `markdown.shikiConfig`, e.g. `{ theme: "dracula" }`.                                                                                     |
+| `trimLeadingNewlines` | Remove blank lines at the start of code blocks before highlighting, e.g. after `bc..`. Has no effect when highlighting is disabled. Defaults to `false`. |
 
 ## License
 

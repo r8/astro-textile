@@ -9,6 +9,8 @@ type MarkdownConfig = NonNullable<AstroUserConfig["markdown"]>;
 export interface HighlightOptions {
   syntaxHighlight?: MarkdownConfig["syntaxHighlight"];
   shikiConfig?: Partial<ShikiConfig>;
+  /** Remove blank lines at the start of code blocks before highlighting */
+  trimLeadingNewlines?: boolean;
 }
 
 // Mirrors Astro's `defaultExcludeLanguages`.
@@ -54,6 +56,7 @@ function textContent(node: Nodes): string {
 export async function createCodeHighlighter({
   syntaxHighlight = "shiki",
   shikiConfig,
+  trimLeadingNewlines = false,
 }: HighlightOptions): Promise<(html: string) => Promise<string>> {
   const { type = "shiki", excludeLangs = [] } =
     typeof syntaxHighlight === "object" ? syntaxHighlight : {};
@@ -86,7 +89,12 @@ export async function createCodeHighlighter({
         continue;
       }
 
-      const highlighted = await highlight(textContent(code).replace(/\n$/, ""), lang);
+      let source = textContent(code).replace(/\n$/, "");
+      if (trimLeadingNewlines) {
+        source = source.replace(/^\n+/, "");
+      }
+
+      const highlighted = await highlight(source, lang);
       if (highlighted) {
         parent.children[index] = highlighted as ElementContent;
       }
