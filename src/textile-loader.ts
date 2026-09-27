@@ -82,8 +82,24 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
           .split(path.sep)
           .join("/");
 
-        const content = await readFile(absolutePath, "utf-8");
-        const { frontmatter, content: doc } = parseFrontmatter(content);
+        let content: string;
+        try {
+          content = await readFile(absolutePath, "utf-8");
+        } catch (error) {
+          // Like Astro's glob loader, skip files that can't be read.
+          logger.error(`Error reading ${file}: ${errorMessage(error)}`);
+          continue;
+        }
+
+        let parsed: ReturnType<typeof parseFrontmatter>;
+        try {
+          parsed = parseFrontmatter(content);
+        } catch (error) {
+          throw new Error(`Invalid frontmatter in ${relativePath}: ${errorMessage(error)}`, {
+            cause: error,
+          });
+        }
+        const { frontmatter, content: doc } = parsed;
 
         const id = generateId({ entry: file, base: baseDir, data: frontmatter });
 
@@ -101,7 +117,14 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
         filePathById.set(id, relativePath);
 
         const body = doc.replace(/^\uFEFF?(?:\r?\n)*/, "");
-        const { html, metadata } = await render(textile(body));
+
+        // Like Astro's glob loader, keep the entry without rendered content if rendering fails.
+        let rendered: Awaited<ReturnType<typeof render>> | undefined;
+        try {
+          rendered = await render(textile(body));
+        } catch (error) {
+          logger.error(`Error rendering ${file}: ${errorMessage(error)}`);
+        }
 
         const data = await parseData({
           id,
@@ -117,14 +140,18 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
           data,
           body: textileOptions.retainBody === false ? undefined : body,
           filePath: relativePath,
-          rendered: {
-            html,
-            metadata: { ...metadata, frontmatter },
+          rendered: rendered && {
+            html: rendered.html,
+            metadata: { ...rendered.metadata, frontmatter },
           },
           // Like Astro's glob loader, so `astro:assets` can import the images.
-          assetImports: metadata.imagePaths,
+          assetImports: rendered?.metadata.imagePaths,
         });
       }
     },
   } satisfies Loader;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

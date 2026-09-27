@@ -61,6 +61,12 @@ test("parses frontmatter after a byte order mark", async () => {
   expect(entry.rendered?.html).toBe('<h1 id="heading">Heading</h1>');
 });
 
+test("throws an error naming the file when the frontmatter is invalid", async () => {
+  await expect(runLoader([], { base: "bad-frontmatter", syntaxHighlight: false })).rejects.toThrow(
+    "Invalid frontmatter in bad-frontmatter/post.textile",
+  );
+});
+
 test("keeps a leading space on the first line after the frontmatter", async () => {
   const { store } = await runLoader([], { base: "leading-space", syntaxHighlight: false });
 

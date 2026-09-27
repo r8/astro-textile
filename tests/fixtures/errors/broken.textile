@@ -1,0 +1,4 @@
+---
+title: Broken
+---
+Throws while rendering.

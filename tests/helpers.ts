@@ -20,7 +20,7 @@ export async function runLoader(
     clear: vi.fn(() => entries.clear()),
   };
   const parseData = vi.fn(async ({ data }: { data: Record<string, unknown> }) => data);
-  const logger = { warn: vi.fn() };
+  const logger = { warn: vi.fn(), error: vi.fn() };
 
   await textileLoader(options).load({
     config: { root: new URL("./fixtures/", import.meta.url), ...config },
