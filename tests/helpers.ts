@@ -2,7 +2,11 @@ import type { LoaderContext } from "astro/loaders";
 import { vi } from "vitest";
 import { textileLoader, type TextileLoaderOptions } from "../src";
 
-export type Entry = { id: string; rendered?: { html: string }; [key: string]: unknown };
+export type Entry = {
+  id: string;
+  rendered?: { html: string; metadata?: Record<string, unknown> };
+  [key: string]: unknown;
+};
 
 export async function runLoader(
   initial: Entry[] = [],

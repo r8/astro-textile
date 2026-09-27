@@ -1,8 +1,7 @@
 import { satteriCreateHighlightFn } from "@astrojs/markdown-satteri";
 import type { AstroUserConfig, ShikiConfig } from "astro";
-import type { Element, ElementContent, Nodes, Parents } from "hast";
-import { toHtml } from "hast-util-to-html";
-import { htmlToHast } from "satteri";
+import type { Element, ElementContent, Parents, Root } from "hast";
+import { textContent } from "./utils";
 
 type MarkdownConfig = NonNullable<AstroUserConfig["markdown"]>;
 
@@ -39,18 +38,6 @@ function getLanguage(code: Element): string {
   }
 
   return "plaintext";
-}
-
-function textContent(node: Nodes): string {
-  if (node.type === "text") {
-    return node.value;
-  }
-
-  if ("children" in node) {
-    return node.children.map(textContent).join("");
-  }
-
-  return "";
 }
 
 function getClassNames(element: Element): Array<string> {
@@ -92,7 +79,7 @@ export async function createCodeHighlighter({
   syntaxHighlight = "shiki",
   shikiConfig,
   trimLeadingNewlines = false,
-}: HighlightOptions): Promise<(html: string) => Promise<string>> {
+}: HighlightOptions): Promise<((tree: Root) => Promise<void>) | undefined> {
   const { type = "shiki", excludeLangs = [] } =
     typeof syntaxHighlight === "object" ? syntaxHighlight : {};
 
@@ -102,7 +89,7 @@ export async function createCodeHighlighter({
   );
 
   if (!highlight) {
-    return async (html) => html;
+    return undefined;
   }
 
   const skipLangs = [...defaultExcludeLanguages, ...excludeLangs];
@@ -139,18 +126,5 @@ export async function createCodeHighlighter({
     }
   };
 
-  return async (html) => {
-    if (!html.includes("<pre")) {
-      return html;
-    }
-
-    const tree = htmlToHast(html, { fragment: true });
-    if (tree.type !== "root") {
-      return html;
-    }
-
-    await visit(tree);
-
-    return toHtml(tree);
-  };
+  return visit;
 }

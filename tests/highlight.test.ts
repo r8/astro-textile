@@ -41,7 +41,7 @@ test("leaves code blocks untouched when highlighting is disabled", async () => {
 
   expect(html).toBe(
     [
-      '<pre class="language-js"><code class="language-js">const tag = "&lt;b&gt;" &amp;&amp; 1;</code></pre>',
+      '<pre class="language-js"><code class="language-js">const tag = "&lt;b>" &amp;&amp; 1;</code></pre>',
       '<pre lang="ts"><code lang="ts">let x: number = 1;</code></pre>',
       "<pre><code>plain &amp; text</code></pre>",
     ].join("\n"),

@@ -61,6 +61,11 @@ const { Content } = await render(post);
 <Content />
 ```
 
+As with Markdown:
+
+- Headings get slug IDs (unless they set one, e.g. `h2(#intro).`), and `render()` returns them as `headings`.
+- Relative images, like `!./cover.png(Cover)!`, are resolved from the entry's directory and optimized with `astro:assets`. Remote images are optimized when they're allowed by `image.domains` or `image.remotePatterns`.
+
 ## Options
 
 | Option                | Description                                                                                                                                                                                |
@@ -68,6 +73,7 @@ const { Content } = await render(post);
 | `pattern`             | Glob pattern (or array of patterns) matching the files to load, relative to `base`. Cannot start with `../` or `/`. Files inside `node_modules` are skipped. Defaults to `"**/*.textile"`. |
 | `base`                | Directory to resolve `pattern` from, relative to the project root, or an absolute file URL. Defaults to the project root.                                                                  |
 | `generateId`          | Function that returns the ID for an entry. Must be unique per collection. See [Entry IDs](#entry-ids).                                                                                     |
+| `retainBody`          | Store the raw Textile source (without frontmatter) as `entry.body`. Defaults to `true`.                                                                                                    |
 | `syntaxHighlight`     | Same as Astro's `markdown.syntaxHighlight`. Defaults to `"shiki"`; set to `false` to disable code highlighting.                                                                            |
 | `shikiConfig`         | Same as Astro's `markdown.shikiConfig`, e.g. `{ theme: "dracula" }`.                                                                                                                       |
 | `trimLeadingNewlines` | Remove blank lines at the start of code blocks before highlighting, e.g. after `bc..`. Has no effect when highlighting is disabled. Defaults to `false`.                                   |

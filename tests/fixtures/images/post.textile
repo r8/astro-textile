@@ -1,0 +1,9 @@
+!./cover.png(Cover)!
+
+!./cover.png!
+
+!https://example.com/remote.png!
+
+!https://other.com/remote.png!
+
+!/public.png!

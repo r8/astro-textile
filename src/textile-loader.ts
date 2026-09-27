@@ -6,7 +6,8 @@ import { glob } from "tinyglobby";
 import type { Loader } from "astro/loaders";
 import { parseFrontmatter } from "astro/markdown";
 import textile from "textile-js";
-import { createCodeHighlighter, type HighlightOptions } from "./highlight";
+import type { HighlightOptions } from "./highlight";
+import { createRenderer } from "./render";
 import { type GenerateIdOptions, checkPrefix, generateIdDefault } from "./utils";
 
 export interface TextileLoaderOptions extends HighlightOptions {
@@ -19,6 +20,8 @@ export interface TextileLoaderOptions extends HighlightOptions {
    * @returns The ID of the entry. Must be unique per collection.
    **/
   generateId?: (options: GenerateIdOptions) => string;
+  /** Whether to store the raw body of each entry in the data store. Defaults to `true` */
+  retainBody?: boolean;
 }
 
 export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader {
@@ -66,7 +69,7 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
         logger.warn(`No files found matching "${pattern}" in directory "${relativeBasePath}"`);
       }
 
-      const highlight = await createCodeHighlighter(textileOptions);
+      const render = await createRenderer(textileOptions, config.image);
 
       store.clear();
 
@@ -97,7 +100,8 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
         }
         filePathById.set(id, relativePath);
 
-        const body = await highlight(textile(doc.replace(/^\uFEFF?(?:\r?\n)*/, "")));
+        const body = doc.replace(/^\uFEFF?(?:\r?\n)*/, "");
+        const { html, metadata } = await render(textile(body));
 
         const data = await parseData({
           id,
@@ -111,11 +115,14 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
         store.set({
           id,
           data,
+          body: textileOptions.retainBody === false ? undefined : body,
           filePath: relativePath,
           rendered: {
-            html: body,
-            metadata: { frontmatter },
+            html,
+            metadata: { ...metadata, frontmatter },
           },
+          // Like Astro's glob loader, so `astro:assets` can import the images.
+          assetImports: metadata.imagePaths,
         });
       }
     },

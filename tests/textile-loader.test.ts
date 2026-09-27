@@ -15,11 +15,19 @@ test("parses frontmatter and renders textile to HTML", async () => {
   expect(store.entries.get("first")).toEqual({
     id: "first",
     data: frontmatter,
+    body: "h1. Heading\n\nSome *bold* text.\n",
     filePath: "posts/first.textile",
     rendered: {
-      html: "<h1>Heading</h1>\n<p>Some <strong>bold</strong> text.</p>",
-      metadata: { frontmatter },
+      html: '<h1 id="heading">Heading</h1>\n<p>Some <strong>bold</strong> text.</p>',
+      metadata: {
+        headings: [{ depth: 1, slug: "heading", text: "Heading" }],
+        localImagePaths: [],
+        remoteImagePaths: [],
+        imagePaths: [],
+        frontmatter,
+      },
     },
+    assetImports: [],
   });
   expect(parseData).toHaveBeenCalledWith({
     id: "first",
@@ -37,7 +45,7 @@ test("parses TOML frontmatter", async () => {
   const entry = await loadFrontmatter("toml");
 
   expect(entry.data).toEqual({ title: "TOML post", tags: ["a", "b"] });
-  expect(entry.rendered?.html).toBe("<h1>Heading</h1>");
+  expect(entry.rendered?.html).toBe('<h1 id="heading">Heading</h1>');
 });
 
 test("parses YAML dates as Date objects", async () => {
@@ -50,7 +58,7 @@ test("parses frontmatter after a byte order mark", async () => {
   const entry = await loadFrontmatter("bom");
 
   expect(entry.data).toEqual({ title: "BOM post" });
-  expect(entry.rendered?.html).toBe("<h1>Heading</h1>");
+  expect(entry.rendered?.html).toBe('<h1 id="heading">Heading</h1>');
 });
 
 test("keeps a leading space on the first line after the frontmatter", async () => {
@@ -58,6 +66,63 @@ test("keeps a leading space on the first line after the frontmatter", async () =
 
   // In Textile, a line starting with a space isn't wrapped in a paragraph.
   expect(store.entries.get("post")?.rendered?.html).toBe("Not a paragraph.");
+});
+
+test("does not store the body when retainBody is false", async () => {
+  const { store } = await runLoader([], {
+    base: "posts",
+    syntaxHighlight: false,
+    retainBody: false,
+  });
+
+  expect(store.entries.get("first")?.body).toBeUndefined();
+});
+
+test("adds IDs to headings and returns them as metadata", async () => {
+  const { store } = await runLoader([], { base: "headings", syntaxHighlight: false });
+  const rendered = store.entries.get("post")?.rendered;
+
+  expect(rendered?.html).toBe(
+    [
+      '<h1 id="hello-world">Hello <strong>World</strong></h1>',
+      '<h2 id="intro">Intro</h2>',
+      '<h2 id="intro-1">Intro</h2>',
+      '<h3 id="custom">Custom ID</h3>',
+    ].join("\n"),
+  );
+  expect(rendered?.metadata?.headings).toEqual([
+    { depth: 1, slug: "hello-world", text: "Hello World" },
+    { depth: 2, slug: "intro", text: "Intro" },
+    { depth: 2, slug: "intro-1", text: "Intro" },
+    { depth: 3, slug: "custom", text: "Custom ID" },
+  ]);
+});
+
+test("marks local and allowed remote images for astro:assets", async () => {
+  const { store } = await runLoader(
+    [],
+    { base: "images", syntaxHighlight: false },
+    { image: { domains: ["example.com"], remotePatterns: [] } },
+  );
+  const entry = store.entries.get("post");
+  const marker = (props: Record<string, unknown>) =>
+    `<img __ASTRO_IMAGE_="${JSON.stringify(props).replaceAll('"', "&quot;")}">`;
+
+  expect(entry?.rendered?.html).toBe(
+    [
+      `<p>${marker({ title: "Cover", alt: "Cover", src: "./cover.png", index: 0 })}</p>`,
+      `<p>${marker({ alt: "", src: "./cover.png", index: 1 })}</p>`,
+      `<p>${marker({ alt: "", src: "https://example.com/remote.png", index: 0, inferSize: true })}</p>`,
+      '<p><img src="https://other.com/remote.png" alt=""></p>',
+      '<p><img src="/public.png" alt=""></p>',
+    ].join("\n"),
+  );
+  expect(entry?.rendered?.metadata).toMatchObject({
+    localImagePaths: ["./cover.png"],
+    remoteImagePaths: ["https://example.com/remote.png"],
+    imagePaths: ["./cover.png", "https://example.com/remote.png"],
+  });
+  expect(entry?.assetImports).toEqual(["./cover.png", "https://example.com/remote.png"]);
 });
 
 test("clears the store before loading", async () => {

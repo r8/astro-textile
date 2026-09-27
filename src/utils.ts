@@ -1,5 +1,6 @@
 import path from "node:path";
 import { slug as githubSlug } from "github-slugger";
+import type { Nodes } from "hast";
 
 export interface GenerateIdOptions {
   /** The path to the entry file, relative to the base directory. */
@@ -37,4 +38,16 @@ export function generateIdDefault({ entry, data }: GenerateIdOptions): string {
     .replace(/\/index$/, "");
 
   return slug;
+}
+
+export function textContent(node: Nodes): string {
+  if (node.type === "text") {
+    return node.value;
+  }
+
+  if ("children" in node) {
+    return node.children.map(textContent).join("");
+  }
+
+  return "";
 }
