@@ -86,6 +86,12 @@ test("generates IDs relative to the root when no base is set", async () => {
   expect([...store.entries.keys()].sort()).toEqual(["posts/first", "posts/second"]);
 });
 
+test("skips files inside node_modules", async () => {
+  const { store } = await runLoader([], { base: "node-modules", syntaxHighlight: false });
+
+  expect([...store.entries.keys()]).toEqual(["post"]);
+});
+
 test("uses a custom generateId function", async () => {
   const generateId = vi.fn(({ entry }: { entry: string }) => `custom/${entry}`);
   const { store } = await runLoader([], { base: "posts", syntaxHighlight: false, generateId });

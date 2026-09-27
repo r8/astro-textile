@@ -10,8 +10,8 @@ import { createCodeHighlighter, type HighlightOptions } from "./highlight";
 import { type GenerateIdOptions, checkPrefix, generateIdDefault } from "./utils";
 
 export interface TextileLoaderOptions extends HighlightOptions {
-  /** The glob pattern to match files, relative to the base directory */
-  pattern: string | Array<string>;
+  /** The glob pattern to match files, relative to the base directory. Defaults to `**\/*.textile` */
+  pattern?: string | Array<string>;
   /** The base directory to resolve the glob pattern from. Relative to the root directory, or an absolute file URL. Defaults to `.` */
   base?: string | URL;
   /**
@@ -21,13 +21,15 @@ export interface TextileLoaderOptions extends HighlightOptions {
   generateId?: (options: GenerateIdOptions) => string;
 }
 
-export function textileLoader(textileOptions: TextileLoaderOptions): Loader {
-  if (checkPrefix(textileOptions.pattern, "../")) {
+export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader {
+  const pattern = textileOptions.pattern ?? "**/*.textile";
+
+  if (checkPrefix(pattern, "../")) {
     throw new Error(
       "Glob patterns cannot start with `../`. Set the `base` option to a parent directory instead.",
     );
   }
-  if (checkPrefix(textileOptions.pattern, "/")) {
+  if (checkPrefix(pattern, "/")) {
     throw new Error(
       "Glob patterns cannot start with `/`. Set the `base` option to a parent directory or use a relative path instead.",
     );
@@ -54,15 +56,14 @@ export function textileLoader(textileOptions: TextileLoaderOptions): Loader {
         logger.warn(`The base directory "${fileURLToPath(baseDir)}" does not exist.`);
       }
 
-      const files = await glob(textileOptions.pattern, {
+      const files = await glob(pattern, {
         cwd: fileURLToPath(baseDir),
         expandDirectories: false,
+        ignore: ["**/node_modules/**"],
       });
 
       if (baseDirExists && files.length === 0) {
-        logger.warn(
-          `No files found matching "${textileOptions.pattern}" in directory "${relativeBasePath}"`,
-        );
+        logger.warn(`No files found matching "${pattern}" in directory "${relativeBasePath}"`);
       }
 
       const highlight = await createCodeHighlighter(textileOptions);
