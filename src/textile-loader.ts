@@ -2,6 +2,7 @@ import path from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
+import picomatch from "picomatch";
 import { glob } from "tinyglobby";
 import type { Loader } from "astro/loaders";
 import { parseFrontmatter } from "astro/markdown";
@@ -24,6 +25,8 @@ export interface TextileLoaderOptions extends HighlightOptions {
   retainBody?: boolean;
 }
 
+const ignorePatterns = ["**/node_modules/**"];
+
 export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader {
   const pattern = textileOptions.pattern ?? "**/*.textile";
 
@@ -44,25 +47,27 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
 
   return {
     name: "textile-loader",
-    load: async ({ config, collection, store, logger, parseData }) => {
+    load: async ({ config, collection, store, logger, parseData, watcher }) => {
       const baseDir = textileOptions.base ? new URL(textileOptions.base, config.root) : config.root;
 
       if (!baseDir.pathname.endsWith("/")) {
         baseDir.pathname = `${baseDir.pathname}/`;
       }
 
-      const relativeBasePath = path.relative(fileURLToPath(config.root), fileURLToPath(baseDir));
+      const basePath = fileURLToPath(baseDir);
+      const rootPath = fileURLToPath(config.root);
+      const relativeBasePath = path.relative(rootPath, basePath);
 
       const baseDirExists = existsSync(baseDir);
 
       if (!baseDirExists) {
-        logger.warn(`The base directory "${fileURLToPath(baseDir)}" does not exist.`);
+        logger.warn(`The base directory "${basePath}" does not exist.`);
       }
 
       const files = await glob(pattern, {
-        cwd: fileURLToPath(baseDir),
+        cwd: basePath,
         expandDirectories: false,
-        ignore: ["**/node_modules/**"],
+        ignore: ignorePatterns,
       });
 
       if (baseDirExists && files.length === 0) {
@@ -71,16 +76,12 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
 
       const render = await createRenderer(textileOptions, config.image);
 
-      store.clear();
+      // Remembers the ID of each file, so a changed or deleted file can replace or remove its entry.
+      const idByFilePath = new Map<string, string>();
 
-      const filePathById = new Map<string, string>();
-
-      for (const file of files) {
-        const absolutePath = path.join(fileURLToPath(baseDir), file);
-        const relativePath = path
-          .relative(fileURLToPath(config.root), absolutePath)
-          .split(path.sep)
-          .join("/");
+      async function syncFile(file: string): Promise<void> {
+        const absolutePath = path.join(basePath, file);
+        const relativePath = toPosixRelative(rootPath, absolutePath);
 
         let content: string;
         try {
@@ -88,7 +89,7 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
         } catch (error) {
           // Like Astro's glob loader, skip files that can't be read.
           logger.error(`Error reading ${file}: ${errorMessage(error)}`);
-          continue;
+          return;
         }
 
         let parsed: ReturnType<typeof parseFrontmatter>;
@@ -103,9 +104,20 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
 
         const id = generateId({ entry: file, base: baseDir, data: frontmatter });
 
+        // The ID changes when the file's `slug` changes.
+        const oldId = idByFilePath.get(absolutePath);
+        if (oldId !== undefined && oldId !== id) {
+          store.delete(oldId);
+        }
+
         // Follow Astro's glob loader: the last entry wins unless `prerenderConflictBehavior` is "error".
-        const existingFilePath = filePathById.get(id);
-        if (existingFilePath && config.prerenderConflictBehavior !== "ignore") {
+        const existingFilePath = store.get(id)?.filePath;
+        if (
+          existingFilePath &&
+          existingFilePath !== relativePath &&
+          existsSync(new URL(existingFilePath, config.root)) &&
+          config.prerenderConflictBehavior !== "ignore"
+        ) {
           const message = `Collection "${collection}" has multiple entries with the ID "${id}": ${existingFilePath} and ${relativePath}. IDs must be unique.`;
 
           if (config.prerenderConflictBehavior === "error") {
@@ -114,7 +126,6 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
 
           logger.warn(message);
         }
-        filePathById.set(id, relativePath);
 
         const body = doc.replace(/^\uFEFF?(?:\r?\n)*/, "");
 
@@ -147,11 +158,71 @@ export function textileLoader(textileOptions: TextileLoaderOptions = {}): Loader
           // Like Astro's glob loader, so `astro:assets` can import the images.
           assetImports: rendered?.metadata.imagePaths,
         });
+        idByFilePath.set(absolutePath, id);
       }
+
+      store.clear();
+
+      for (const file of files) {
+        await syncFile(file);
+      }
+
+      // Only set in dev.
+      if (!watcher) {
+        return;
+      }
+
+      const patterns = Array.isArray(pattern) ? pattern : [pattern];
+      const isMatch = picomatch(
+        patterns.filter((p) => !p.startsWith("!")),
+        {
+          ignore: [
+            ...ignorePatterns,
+            ...patterns.filter((p) => p.startsWith("!")).map((p) => p.slice(1)),
+          ],
+        },
+      );
+      const toEntry = (changedPath: string): string | undefined => {
+        const entry = toPosixRelative(basePath, changedPath);
+        return !entry.startsWith("../") && isMatch(entry) ? entry : undefined;
+      };
+
+      const onChange = async (changedPath: string): Promise<void> => {
+        const entry = toEntry(changedPath);
+        if (!entry) {
+          return;
+        }
+
+        try {
+          await syncFile(entry);
+          logger.info(`Reloaded data from ${entry}`);
+        } catch (error) {
+          logger.error(`Failed to reload ${entry}: ${errorMessage(error)}`);
+        }
+      };
+
+      watcher.add(basePath);
+      watcher.on("change", onChange);
+      watcher.on("add", onChange);
+      watcher.on("unlink", (deletedPath) => {
+        if (!toEntry(deletedPath)) {
+          return;
+        }
+
+        const id = idByFilePath.get(deletedPath);
+        if (id !== undefined) {
+          store.delete(id);
+          idByFilePath.delete(deletedPath);
+        }
+      });
     },
   } satisfies Loader;
 }
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function toPosixRelative(from: string, to: string): string {
+  return path.relative(from, to).split(path.sep).join("/");
 }

@@ -42,6 +42,7 @@
     "@astrojs/markdown-satteri": "^0.4.0",
     "github-slugger": "^2.0.0",
     "hast-util-to-html": "^9.0.5",
+    "picomatch": "^4.0.4",
     "satteri": "^0.10.3",
     "textile-js": "^2.1.1",
     "tinyglobby": "^0.2.15"
@@ -49,6 +50,7 @@
   "devDependencies": {
     "@types/hast": "^3.0.5",
     "@types/node": "^26.1.1",
+    "@types/picomatch": "^4.0.3",
     "@types/textile-js": "^2.1.0",
     "astro": "^7.3.0",
     "oxfmt": "^0.70.0",
