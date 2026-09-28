@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/r8/astro-textile/compare/v0.0.4...v0.0.5) (2026-09-28)
+
+
+### Features
+
+* pass code block meta to Shiki ([7e4efcf](https://github.com/r8/astro-textile/commit/7e4efcf16faa74f15cb5dbb8807ee07fb08fca0d))
+
 ## [0.0.4](https://github.com/r8/astro-textile/compare/v0.0.3...v0.0.4) (2026-09-27)
 
 
