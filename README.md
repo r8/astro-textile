@@ -66,6 +66,19 @@ As with Markdown:
 - Headings get slug IDs (unless they set one, e.g. `h2(#intro).`), and `render()` returns them as `headings`.
 - Relative images, like `!./cover.png(Cover)!`, are resolved from the entry's directory and optimized with `astro:assets`. Remote images are optimized when they're allowed by `image.domains` or `image.remotePatterns`.
 
+### Code block meta
+
+> [!NOTE]
+> This is an astro-textile extension to Textile. In standard Textile, `[...]` is just the language modifier, so other Textile tools put the whole text into the `lang` attribute.
+
+In a code block's language modifier, text after the language is the code block's meta, like in a Markdown fence (` ```js {1,3} title="a.js" `):
+
+```textile
+bc[js {1,3} title="a.js"]. const a = 1;
+```
+
+The meta is passed to Shiki transformers, such as `transformerMetaHighlight` from `@shikijs/transformers`. Prism ignores it. Write `[` and `]` in the meta as `&#91;` and `&#93;`.
+
 ## Options
 
 | Option                | Description                                                                                                                                                                                |

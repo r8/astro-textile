@@ -22,22 +22,21 @@ function findCode(pre: Element): Element | undefined {
 }
 
 // textile-js emits `class="language-js"` for `bc(language-js).` and `lang="js"` for `bc[js].`.
-function getLanguage(code: Element): string {
-  const { className, lang } = code.properties;
+// As an extension, text after the first word of `bc[js {1,3}].` is the meta, like in a Markdown fence.
+function getLanguageAndMeta(code: Element): { lang: string; meta?: string } {
+  const { className, lang: langAttribute } = code.properties;
+  const [langWord, meta] =
+    typeof langAttribute === "string" ? langAttribute.trim().split(/\s+(.*)/s) : [];
 
   const languageClass = Array.isArray(className)
     ? className.find((name) => typeof name === "string" && name.startsWith("language-"))
     : undefined;
 
   if (typeof languageClass === "string") {
-    return languageClass.slice("language-".length);
+    return { lang: languageClass.slice("language-".length), meta };
   }
 
-  if (typeof lang === "string" && lang) {
-    return lang;
-  }
-
-  return "plaintext";
+  return { lang: langWord || "plaintext", meta };
 }
 
 function getClassNames(element: Element): Array<string> {
@@ -106,7 +105,7 @@ export async function createCodeHighlighter({
         continue;
       }
 
-      const lang = getLanguage(code);
+      const { lang, meta } = getLanguageAndMeta(code);
       if (skipLangs.includes(lang)) {
         continue;
       }
@@ -116,7 +115,7 @@ export async function createCodeHighlighter({
         source = source.replace(/^\n+/, "");
       }
 
-      const highlighted = await highlight(source, lang);
+      const highlighted = await highlight(source, lang, meta);
       if (highlighted) {
         if (highlighted.type === "element") {
           copyBlockAttributes(child, highlighted);

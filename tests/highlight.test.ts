@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import type { ShikiConfig } from "astro";
 import type { TextileLoaderOptions } from "../src";
 import { runLoader } from "./helpers";
 
@@ -100,4 +101,34 @@ test("keeps the id and custom classes of code blocks with Prism", async () => {
   const html = await renderCode({ syntaxHighlight: "prism" }, "attributes");
 
   expect(html).toContain('<pre class="language-js custom" data-language="js" id="example">');
+});
+
+// Copies the meta Shiki receives onto the `<pre>`, like a transformer such as `transformerMetaHighlight` reads it.
+const metaTransformer: NonNullable<ShikiConfig["transformers"]>[number] = {
+  pre(node) {
+    const meta = this.options.meta?.__raw;
+    if (meta) {
+      node.properties["data-meta"] = meta;
+    }
+  },
+};
+
+test("passes code block meta to Shiki", async () => {
+  const html = await renderCode({ shikiConfig: { transformers: [metaTransformer] } }, "meta");
+
+  expect(html).toContain('data-language="js" data-meta="{1,3} title=&quot;a.js&quot;"');
+  expect(html).toMatch(/data-language="ts">/);
+});
+
+test("decodes HTML entities in code block meta", async () => {
+  const html = await renderCode({ shikiConfig: { transformers: [metaTransformer] } }, "meta");
+
+  expect(html).toContain('data-meta="title=&quot;[a].js&quot;"');
+});
+
+test("uses only the first word of the language modifier as the language with Prism", async () => {
+  const html = await renderCode({ syntaxHighlight: "prism" }, "meta");
+
+  expect(html).toContain('<pre class="language-js" data-language="js">');
+  expect(html).not.toContain("{1,3}");
 });
